@@ -3,7 +3,7 @@ program fonction_carre;
 var
 	a, b : integer;
 
-function f (c : integer) : integer;
+function f () : integer;
 begin
    f := c * c;
 end;
