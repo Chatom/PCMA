@@ -12,8 +12,8 @@
  *
 **/
 
-// Ajouts
 
+// Crée et renvoie un nouveau symbole correspondant aux paramètres
 SSymbole * AjouterSymb (char * Nom, int Type, int Debut, int Fin, int Adresse)
 {
 	SSymbole * Symbole;
@@ -32,10 +32,15 @@ SSymbole * AjouterSymb (char * Nom, int Type, int Debut, int Fin, int Adresse)
 	Symbole->Fin = Fin;
 	Symbole->Adresse = Adresse;
 	
+	Symbole->NbParam = -1;
+
 	return Symbole;
 	
 } // AjouterSymb ()
 
+// Ajoute le symbole sur la pile
+// Adresse vaut -1 si ce n'est pas une variable
+// NULL autrement
 SSymbole * AjouterSymbSurPile (SPile * Pile, char * Nom, int Type, int Debut, int Fin, int Adresse)
 {
 	// Ajout du symbole sur le dessus de la pile
@@ -44,14 +49,22 @@ SSymbole * AjouterSymbSurPile (SPile * Pile, char * Nom, int Type, int Debut, in
 		return Pile->TableSymbole = AjouterSymb (Nom, Type, Debut, Fin, Adresse);
 	else
 	{
+		int NbSymb;
 		SSymbole * Symbole = Pile->TableSymbole;
-		while (Symbole->Suivant != NULL) Symbole = Symbole->Suivant;
+		while (Symbole->Suivant != NULL) 
+		{
+			Symbole = Symbole->Suivant;
+			if (Symbole->NbParam == -1) ++NbSymb;
+		}
 		
+		//if (Adresse != -1) Adresse = NbSymb;
+
 		return Symbole->Suivant = AjouterSymb (Nom, Type, Debut, Fin, Adresse);
 	}
 
 } // AjouterSymbSurPile ()
 
+// Crée et retourne une nouvelle pile avec une première Table des Symb.
 SPile * AjouterPile (SSymbole * TableSymbole)
 {
 	SPile * Pile = (SPile *) malloc (sizeof (SPile));
@@ -68,6 +81,7 @@ SPile * AjouterPile (SSymbole * TableSymbole)
 	
 } // AjouterPile ()
 
+// Renvoie la table des symboles correspondant à l'arbre donné
 SPile * CreerPile (SNoeud * Racine)
 {
 	SPile * Pile = (SPile *) malloc (sizeof (SPile));
@@ -85,18 +99,20 @@ SPile * CreerPile (SNoeud * Racine)
 } // CreerPile ()
 
 
-// Affichage
-
+// Affiche la table des symboles donnée en param. selon son type
 void AfficherTableSymb (SSymbole * TableSymb)
 {
 	SSymbole * Symb = TableSymb;
 	
 	for ( ; Symb != NULL; Symb = Symb->Suivant)
 	{
-		if (Symb->Type == ARRAY)
+		if (Symb->Fin != NULL)
 			printf("  Symbole:   Nom=%s  |  Type=%d  | Adresse=%d  |  [%d - %d]\n", Symb->Nom, Symb->Type, Symb->Adresse, Symb->Debut, Symb->Fin);
-		else if (Symb->NbParam != NULL)
-			printf("  Fonction:   Nom=%s  |  Type=%d  | Adresse=%d  |  NbParam=%d\n", Symb->Nom, Symb->Type, Symb->Adresse, Symb->NbParam);
+		else if (Symb->NbParam != -1)
+			if (Symb->Type == NULL)
+				printf("  PROCedure:   Nom=%s  |  Type=%d  |            |  NbParam=%d\n", Symb->Nom, Symb->Type, Symb->NbParam);
+			else
+				printf("  FONCtion:   Nom=%s  |  Type=%d |            |  NbParam=%d\n", Symb->Nom, Symb->Type, Symb->NbParam);
 		else
 			printf("  Symbole:   Nom=%s  |  Type=%d  | Adresse=%d\n", Symb->Nom, Symb->Type, Symb->Adresse);
 		
@@ -104,6 +120,7 @@ void AfficherTableSymb (SSymbole * TableSymb)
 	
 } // AfficherTableSymb ()
 
+// Affiche les tables des symboles de la pile grâce à AfficherTableSymb()
 void AfficherPile (SPile * Pile)
 {
 	printf("\nAffichage des piles :\n");
@@ -116,9 +133,11 @@ void AfficherPile (SPile * Pile)
 		AfficherTableSymb (PileCourante->TableSymbole);
 	}
 	
+	printf("____________________\n");
+	
 } // AfficherPile ()
 
-
+// Vérifie si une variable de même nom existe déjà dans la pile donnée
 void TestVarExiste (char * Nom, SPile * Pile)
 {
 
@@ -134,22 +153,17 @@ void TestVarExiste (char * Nom, SPile * Pile)
 
 int Adresse = 0;
 
+// Fonction récursive qui crée les tables des symboles dans Pile
+// en parcourant l'arbre Racine
 void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 {
-	
-	//SSymbole * Symbole = Pile->TableSymbole;
-	//if (Symbole != NULL)
-	//while (Symbole->Suivant != NULL) Symbole = Symbole->Suivant;
-	
 	int Type, Debut, Fin;
 	
 	if (Racine->Type == -1) return;
 	
 	if (Racine->Type == PROGRAMPAS)
 	{
-		//Symbole = AjouterSymb (Racine->Fils1.Nom, PROGRAM, NULL, NULL, Adresse);
-		AjouterSymbSurPile (Pile, Racine->Fils1.Nom, PROGRAM, NULL, NULL, Adresse);
-		AfficherPile (Pile);
+		AjouterSymbSurPile (Pile, Racine->Fils1.Nom, PROGRAM, NULL, NULL, -1);
 		
 		CreerTableSymbole (Racine->Fils2.Fils, Pile);
 	}
@@ -160,6 +174,7 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 	}
 	else if (Racine->Type == DECLVAR)
 	{
+		// Récupération du type
 		if (Racine->Fils2.Fils->Type == TYPESIMPLE)
 		{
 			Debut = Fin = NULL;
@@ -172,6 +187,7 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 			Type  = Racine->Fils2.Fils->Fils3.Nombre;
 		}
 		
+		// ListeID
 		for (SNoeud * NoeudID = Racine->Fils1.Fils;
 			 NoeudID != NULL;
 			 NoeudID = NoeudID->Fils2.Frere)
@@ -179,64 +195,63 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 			printf("var: %s\n", NoeudID->Fils1.Nom);
 			
 			TestVarExiste (NoeudID->Fils1.Nom, Pile);
-			//Symbole->Suivant = AjouterSymb (NoeudID->Fils1.Nom, Type, Debut, Fin, Adresse);
 			AjouterSymbSurPile (Pile, NoeudID->Fils1.Nom, Type, Debut, Fin, Adresse);
-			//Symbole = Symbole->Suivant;
 			++Adresse;
-			
-			AfficherPile (Pile);
-			printf("\n");
 		}
 		
 		if (Racine->Fils3.Fils != NULL)
 			CreerTableSymbole (Racine->Fils3.Fils, Pile);
-	}
-	else if (Racine->Type == DECLFONC)
+
+	} // DECLVAR
+	else if (Racine->Type == DECLFONC || Racine->Type == DECLPROC)
 	{
-		printf ("DECLFONC: %s\n",Racine->Fils1.Nom);
+		if (Racine->Type == DECLFONC)
+			printf ("DECLFONC: %s\n",Racine->Fils1.Nom);
+		if (Racine->Type == DECLPROC)
+			printf ("DECLPROC: %s\n",Racine->Fils1.Nom);
 		
-		if (Racine->Fils3.Fils->Type == TYPESIMPLE)
-		{
-			Debut = Fin = NULL;
-			Type = Racine->Fils3.Fils->Fils1.Nombre;
-		}
-		else if (Racine->Fils3.Fils->Type == ARRAY)
-		{
-			Debut = Racine->Fils3.Fils->Fils1.Nombre;
-			Fin   = Racine->Fils3.Fils->Fils2.Nombre;
-			Type  = Racine->Fils3.Fils->Fils3.Nombre;
-		}
+		Type = Debut = Fin = NULL;
 		
-		//Noeud = Noeud->Fils1.Fils;
+		// Récupération du type de la fonc/proc
+		if (Racine->Type == DECLFONC)
+			if (Racine->Fils3.Fils->Type == TYPESIMPLE)
+			{
+				Type = Racine->Fils3.Fils->Fils1.Nombre;
+			}
+			else if (Racine->Fils3.Fils->Type == ARRAY)
+			{
+				Debut = Racine->Fils3.Fils->Fils1.Nombre;
+				Fin   = Racine->Fils3.Fils->Fils2.Nombre;
+				Type  = Racine->Fils3.Fils->Fils3.Nombre;
+			}
 		
+		// Test et ajout de la fonc/proc
 		TestVarExiste (Racine->Fils1.Nom, Pile);
-		//Symbole->Suivant = AjouterSymb (Racine->Fils1.Nom, Type, Debut, Fin, Adresse);
-		SSymbole * Symbole = AjouterSymbSurPile (Pile, Racine->Fils1.Nom, Type, Debut, Fin, 0);
-	//	Symbole = Symbole->Suivant;
-		//++Adresse;
+		SSymbole * Symbole = AjouterSymbSurPile (Pile, Racine->Fils1.Nom, Type, Debut, Fin, -1);
 		
-		AfficherPile (Pile);
+		//AfficherPile (Pile);
 		
 		int NbParam = 0;
 		
+		// Création  et parcours de la nouvelle pile
 		SPile * PileFonc = Pile;
 		for ( ; PileFonc->Suivant != NULL; PileFonc = PileFonc->Suivant);
 		
-		//PileFonc->Suivant = AjouterPile ( AjouterSymb(NULL, NULL, NULL, NULL, NULL) );
-		PileFonc->Suivant = AjouterPile (AjouterSymb (Racine->Fils1.Nom, Type, Debut, Fin, 0));
+		PileFonc->Suivant = AjouterPile (AjouterSymb (Racine->Fils1.Nom, Type, Debut, Fin, -1));
 		PileFonc = PileFonc->Suivant;
 		
-		SSymbole * SymbParam = PileFonc->TableSymbole;
-		
-		int AdresseFonc = 0;
+		// Préparation des adresses de la nouvelle pile
+		int OldAdr = Adresse;
+		Adresse = 0;
 
-		// Param
+		// ListeParametres
 		for (SNoeud * NoeudParam = Racine->Fils2.Fils;
 			 NoeudParam != NULL;
 			 NoeudParam = NoeudParam->Fils3.Frere)
 		{
 			if (NoeudParam->Fils1.Fils == NULL) break;
-
+			
+			// Récupération du type
 			if (NoeudParam->Fils2.Fils->Type == TYPESIMPLE)
 			{
 				Debut = Fin = NULL;
@@ -249,79 +264,16 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 				Type  = NoeudParam->Fils2.Fils->Fils3.Nombre;
 			}
 			
+			// ListeID
 			for (SNoeud * NoeudID = NoeudParam->Fils1.Fils;
 				 NoeudID != NULL;
 				 NoeudID = NoeudID->Fils2.Frere)
 			{
 				printf("Param: %s\n", NoeudID->Fils1.Nom);
 				TestVarExiste (NoeudID->Fils1.Nom, PileFonc);
-				//SymbParam->Suivant = AjouterSymb (NoeudID->Fils1.Nom, Type, Debut, Fin, Adresse);
-				AjouterSymbSurPile (PileFonc, NoeudID->Fils1.Nom, Type, Debut, Fin, AdresseFonc);
-				//SymbParam = SymbParam->Suivant;
-				++AdresseFonc;
+				AjouterSymbSurPile (PileFonc, NoeudID->Fils1.Nom, Type, Debut, Fin, Adresse);
+				++Adresse;
 				++NbParam;
-			}
-			
-		}
-		
-		//PileFonc->TableSymbole = PileFonc->TableSymbole->Suivant;
-		
-		//Symbole->NbParam = NbParam;
-		PileFonc->TableSymbole->NbParam = NbParam;
-
-		CreerTableSymbole (Racine->Fils4.Fils, PileFonc);
-		
-	}
-	else if (Racine->Type == DECLPROC)
-	{
-		printf ("DECLPROC: %s\n",Racine->Fils1.Nom);
-		
-		TestVarExiste (Racine->Fils1.Nom, Pile);
-		SSymbole * Symbole = AjouterSymbSurPile (Pile, Racine->Fils1.Nom, NULL, NULL, NULL, NULL);
-		
-		AfficherPile (Pile);
-		
-		int NbParam = 0;		
-		
-		SPile * PileFonc = Pile;
-		for ( ; PileFonc->Suivant != NULL; PileFonc = PileFonc->Suivant);
-		
-		PileFonc->Suivant = AjouterPile (AjouterSymb (Racine->Fils1.Nom, NULL, NULL, NULL, NULL));
-		PileFonc = PileFonc->Suivant;
-		
-		SSymbole * SymbParam = PileFonc->TableSymbole;
-		
-		int AdresseProc;
-
-		// Param
-		for (SNoeud * NoeudParam = Racine->Fils2.Fils;
-			 NoeudParam != NULL;
-			 NoeudParam = NoeudParam->Fils3.Frere)
-		{
-			if (NoeudParam->Fils1.Fils == NULL) break;
-			
-			if (NoeudParam->Fils2.Fils->Type == TYPESIMPLE)
-			{
-				Debut = Fin = NULL;
-				Type = NoeudParam->Fils2.Fils->Fils1.Nombre;
-			}
-			else if (NoeudParam->Fils2.Fils->Type == ARRAY)
-			{
-				Debut = NoeudParam->Fils2.Fils->Fils1.Nombre;
-				Fin   = NoeudParam->Fils2.Fils->Fils2.Nombre;
-				Type  = NoeudParam->Fils2.Fils->Fils3.Nombre;
-			}
-			
-			for (SNoeud * NoeudID = NoeudParam->Fils1.Fils;
-				 NoeudID != NULL;
-				 NoeudID = NoeudID->Fils2.Frere)
-			{
-				printf("Param: %s\n", NoeudID->Fils1.Nom);
-				TestVarExiste (NoeudID->Fils1.Nom, PileFonc);
-				//SymbParam->Suivant = AjouterSymb (NoeudID->Fils1.Nom, Type, Debut, Fin, Adresse);
-				AjouterSymbSurPile (PileFonc, NoeudID->Fils1.Nom, Type, Debut, Fin, AdresseProc);
-				SymbParam = SymbParam->Suivant;
-				++AdresseProc;
 			}
 			
 		}
@@ -329,9 +281,15 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 		Symbole->NbParam = NbParam;
 		PileFonc->TableSymbole->NbParam = NbParam;
 		
-		CreerTableSymbole (Racine->Fils3.Fils, PileFonc);
-	}
-	
+		// Appel du body
+		if (Racine->Type == DECLPROC)
+			CreerTableSymbole (Racine->Fils3.Fils, PileFonc);
+		else
+			CreerTableSymbole (Racine->Fils4.Fils, PileFonc);
+		
+		Adresse = OldAdr;
+
+	} // DECLPROC || DECLFUNC
 	
 } // CreerTableSymbole ()
 

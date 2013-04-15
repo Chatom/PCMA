@@ -14,23 +14,6 @@
 
 //#include "ArbreSyntaxique.h"
 
-/*
-union MyUnion {
-	struct SNoeud * Fils;
-	int Nombre;
-	char * Nom;
-	struct SNoeud * Frere;
-};
-
-typedef struct SNoeud {
-	int Type;
-	union MyUnion Fils1;
-	union MyUnion Fils2;
-	union MyUnion Fils3;
-	union MyUnion Fils4;
-} SNoeud;
-
-*/
 
 SNoeud * CreerNoeud ()
 {

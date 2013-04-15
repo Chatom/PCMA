@@ -44,12 +44,12 @@ int main (int argc, char ** argv)
 		{
 			printf ("\n=> Affichage de l'arbre syntaxique :\n\n");
 			AfficherArbre (Racine, 0);
-			
-			SPile * Pile;
-			Pile = CreerPile (Racine);
-			AfficherPile (Pile);
 		}
 		
+		SPile * Pile;
+		Pile = CreerPile (Racine);
+		AfficherPile (Pile);
+
 		fclose (yyin);
 		return 0;
 	}
