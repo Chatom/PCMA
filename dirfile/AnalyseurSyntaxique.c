@@ -720,7 +720,7 @@ SNoeud * Facteur ()
 			Accept (')');
 		}
 		else if (lexeme == '[')
-			Noeud->Fils2.Fils = Variable ();
+			Noeud->Fils3.Fils = Variable ();
 	}
 	else if (lexeme == TRUE || lexeme == FALSE)
 	{

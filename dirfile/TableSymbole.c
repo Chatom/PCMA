@@ -13,6 +13,9 @@
 **/
 
 
+int Adresse = 0;
+SPile * PileGlobale;
+
 // Crée et renvoie un nouveau symbole correspondant aux paramètres
 SSymbole * AjouterSymb (char * Nom, int Type, int Debut, int Fin, int Adresse)
 {
@@ -151,7 +154,37 @@ void TestVarExiste (char * Nom, SPile * Pile)
 	
 } // TestVarExiste ()
 
-int Adresse = 0;
+// Vérifie si la variable est déclarée et renvoie le type
+int TestTypeVar (char * Nom, SPile * Pile)
+{
+	printf("[!] Test si %s est déclarée\n", Nom);
+	
+	// Recherche dans les variables globales
+	SSymbole * Symb = PileGlobale->TableSymbole;
+	
+	for ( ; Symb->Suivant != NULL; Symb = Symb->Suivant)
+	{
+		if ( strcmp (Symb->Nom, Nom) == 0 )
+		{
+			printf("->    %s [type=%d] est déclarée dans la pile globale\n", Nom, Symb->Type);
+			return Symb->Type;
+		}
+	}
+	
+	// Recherche dans la pile courante
+	Symb = Pile->TableSymbole;
+	
+	for ( ; Symb->Suivant != NULL; Symb = Symb->Suivant)
+	{
+		if ( strcmp (Symb->Nom, Nom) == 0 )
+		{
+			printf("->    %s [type=%d] est déclarée dans la pile courante\n", Nom, Symb->Type);
+			return Symb->Type;
+		}
+	}
+	
+} // TestTypeVar ()
+
 
 // Fonction récursive qui crée les tables des symboles dans Pile
 // en parcourant l'arbre Racine
@@ -164,6 +197,8 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 	if (Racine->Type == PROGRAMPAS)
 	{
 		AjouterSymbSurPile (Pile, Racine->Fils1.Nom, PROGRAM, NULL, NULL, -1);
+		
+		PileGlobale = AjouterPile (Pile->TableSymbole);
 		
 		CreerTableSymbole (Racine->Fils2.Fils, Pile);
 	}
@@ -290,6 +325,118 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 		Adresse = OldAdr;
 
 	} // DECLPROC || DECLFUNC
+	else if (Racine->Type == BLOC)
+	{
+		CreerTableSymbole (Racine->Fils1.Fils, Pile);
+	}
+	else if (Racine->Type == INSTRUCTION)
+	{
+		if (Racine->Fils1.Fils != NULL)
+			CreerTableSymbole (Racine->Fils1.Fils, Pile);
+
+		if (Racine->Fils2.Frere != NULL)
+			CreerTableSymbole (Racine->Fils2.Frere, Pile);
+	}
+	else if (Racine->Type == WHILEDO)
+	{
+		CreerTableSymbole (Racine->Fils1.Fils, Pile);
+		CreerTableSymbole (Racine->Fils2.Fils, Pile);
+	}
+	else if (Racine->Type == IFTHENELSE)
+	{
+		CreerTableSymbole (Racine->Fils1.Fils, Pile);
+		CreerTableSymbole (Racine->Fils2.Fils, Pile);
+		if (Racine->Fils3.Fils != NULL)
+			CreerTableSymbole (Racine->Fils3.Fils, Pile);
+	}
+	else if (Racine->Type == AFFECTATION)
+	{
+	//	printf ("AFFECTATION: %s\n", Racine->Fils1.Nom);
+		TestTypeVar (Racine->Fils1.Nom, Pile);
+		
+		CreerTableSymbole (Racine->Fils2.Fils, Pile);
+		CreerTableSymbole (Racine->Fils3.Fils, Pile);
+	}
+	else if (Racine->Type == APPELPROC)
+	{
+	//	printf ("APPELPROC: %s\n", Racine->Fils1.Nom);
+		CreerTableSymbole (Racine->Fils2.Fils, Pile);
+	}
+	else if (Racine->Type == EXPRESSION)
+	{
+		CreerTableSymbole (Racine->Fils1.Fils, Pile);
+		if (Racine->Fils2.Frere != NULL)
+			CreerTableSymbole (Racine->Fils2.Frere, Pile);
+	}
+	else if (Racine->Type == CONJONCTION)
+	{
+		CreerTableSymbole (Racine->Fils1.Fils, Pile);
+		if (Racine->Fils2.Frere != NULL)
+			CreerTableSymbole (Racine->Fils2.Frere, Pile);
+	}
+	else if (Racine->Type == COMPARAISON)
+	{
+		CreerTableSymbole (Racine->Fils1.Fils, Pile);
+		CreerTableSymbole (Racine->Fils2.Fils, Pile);
+	}
+	else if (Racine->Type == SUITECOMPAR)
+	{
+		if (Racine->Fils1.Nombre != NULL &&
+			Racine->Fils2.Fils != NULL)
+		{
+	//		printf ("SUITECOMPAR: %d\n", Racine->Fils1.Nombre);
+			CreerTableSymbole (Racine->Fils2.Fils, Pile);
+		}
+	}
+	else if (Racine->Type == EXPARITH)
+	{
+	//	printf ("EXPARITH: %d\n", Racine->Fils1.Nombre);
+		CreerTableSymbole (Racine->Fils2.Fils, Pile);
+		
+		if (Racine->Fils3.Nombre != NULL)
+		{
+			//printf ("Addition: %d\n", Racine->Fils3.Nombre);
+			CreerTableSymbole (Racine->Fils4.Frere, Pile);
+		}
+	}
+	else if (Racine->Type == TERME)
+	{
+		CreerTableSymbole (Racine->Fils1.Fils, Pile);
+
+		if (Racine->Fils2.Nombre != NULL)
+		{
+		//	printf ("MULTIPL: %d\n", Racine->Fils2.Nombre);
+			CreerTableSymbole (Racine->Fils3.Frere, Pile);
+		}
+	}
+	else if (Racine->Type == FACTEUR)
+	{
+		if (Racine->Fils1.Nombre != NULL)
+		{
+	//		printf ("FACTEUR: %d\n", Racine->Fils1.Nombre);
+		}
+		if (Racine->Fils2.Nom != NULL)
+		{
+	//		printf ("FACTEUR: %s\n", Racine->Fils2.Nom);
+			TestTypeVar (Racine->Fils2.Nom, Pile);
+		}
+		if (Racine->Fils3.Fils != NULL)
+			CreerTableSymbole (Racine->Fils3.Fils, Pile);
+			
+	}
+	else if (Racine->Type == LISTEEXP)
+	{
+		if (Racine->Fils1.Fils != NULL)
+			CreerTableSymbole (Racine->Fils1.Fils, Pile);
+		if (Racine->Fils2.Frere != NULL)
+			CreerTableSymbole (Racine->Fils2.Frere, Pile);
+	}
+	else if (Racine->Type == VARIABLE)
+	{
+		if (Racine->Fils1.Fils != NULL)
+			CreerTableSymbole (Racine->Fils1.Fils, Pile);
+	}
+	
 	
 } // CreerTableSymbole ()
 
