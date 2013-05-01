@@ -1,24 +1,32 @@
 program ProgTest;
 
 var
-FirstVarGlobal : integer;
-SecondVarGlobal, ThirdVarGlobal : boolean;
+	FirstVarGlobal : integer;
+	SecondVarGlobal, ThirdVarGlobal : boolean;
+	Tab : array [42..73] of integer;
 
 procedure proc (FirstParamProc : integer; SecondParamProc : boolean);
 var
-VarLocalProc : integer;
+	VarLocalProc : boolean;
 begin
-FirstVarGlobal := VarLocalProc div FirstParamProc;
+	FirstVarGlobal := FirstVarGlobal div FirstParamProc;
 end;
 
 var
-QuatrVarGlobal : integer;
+	QuatrVarGlobal : integer;
 
-function Fonc (ParamFonction : integer; TabParamFonc : array [42..73] of boolean) : integer;
+function Fonc (ParamFonction : integer; TabParamFonc : array [42..73] of integer) : integer;
 begin
-Fonc := ParamFonction * ThirdVarGlobal;
+	Fonc := ParamFonction * TabParamFonc [50];
 end;
 
 begin
-write(Fonc(2));
+	write(Fonc(2, Tab));
+	if FirstVarGlobal > 3 then
+		proc(FirstVarGlobal, false);
+	
+	Fonc (5, Fonc(5, Fonc (4, 5)));
+	Fonc(2, Tab);
+	
+	proc(5, true);
 end.

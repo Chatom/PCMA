@@ -46,6 +46,8 @@ int main (int argc, char ** argv)
 			AfficherArbre (Racine, 0);
 		}
 		
+		//FileOut = fopen ("out.asm", "a");
+		
 		SPile * Pile;
 		Pile = CreerPile (Racine);
 		AfficherPile (Pile);

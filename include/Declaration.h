@@ -17,10 +17,12 @@
 
 // Variables globales
 FILE * yyin;
+FILE * FileOut;
 char yytext [1000];
 int verbose = 0;
 int line = 1;
 int lexeme;
+
 
 // Type des lexèmes
 enum {

@@ -25,7 +25,6 @@ typedef struct SSymbole
 	int NbParam;
 	
 	struct SSymbole * Suivant;
-	//struct SSymbole * Param;
 
 } SSymbole;
 
