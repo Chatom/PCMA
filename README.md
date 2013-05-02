@@ -16,7 +16,7 @@ Il est décomposé en plusieurs parties :
 - génération de code MIPS durant ce parcourt
 
 
-	HOWTO:
+   How To :
 Compilation : taper "make" dans le répertoire dirfile
 Execution : ./PCMA.run FichierPascal [verbose] [tree && symb]
 
@@ -28,7 +28,7 @@ Des messages d'erreur lors de l'analyse sémantique peuvent être affichés, mai
 ! Le fichier MIPS est automatiquement créé dans "out.asm".
 
 
-	CHOIX:
+   Choix :
 L'analyse lexicale suit les lexèmes autorisés dans la grammaire.
 De même, l'analyse syntaxique suit la grammaire simplifiée Pascal donnée.
 Ce parcours syntaxique est effectuée avec une fonction spécialisée à chaque fois.
