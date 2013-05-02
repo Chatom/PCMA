@@ -53,6 +53,8 @@ int main (int argc, char ** argv)
 		SPile * Pile;
 		Pile = CreerPile (Racine);
 		
+		printf("\nFichier MIPS généré dans ./out.asm\n");
+		
 		if (argc >= 4)
 			AfficherPile (Pile);
 		
@@ -66,7 +68,7 @@ int main (int argc, char ** argv)
 	}
 	else
 	{
-		printf ("usage: Analyseur FichierPascal [verbose] [tree && symb]\n");
+		printf ("usage: ./PCMA.run FichierPascal [verbose] [tree && symb]\n");
 		return 1;
 	}
 
