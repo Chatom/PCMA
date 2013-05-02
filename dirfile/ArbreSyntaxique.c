@@ -12,9 +12,8 @@
  *
 **/
 
-//#include "ArbreSyntaxique.h"
 
-
+// Alloue et renvoie un noeud
 SNoeud * CreerNoeud ()
 {
 	SNoeud * p = (SNoeud *) malloc (sizeof (SNoeud));
@@ -30,6 +29,7 @@ SNoeud * CreerNoeud ()
 	
 } // CreerNoeud ()
 
+// Effectue les affichages de l'arbre avec de sappels récursifs
 void AfficherArbre (SNoeud * Racine, int Niveau)
 {
 	if (Racine->Type == -1) return;
@@ -236,6 +236,7 @@ void AfficherArbre (SNoeud * Racine, int Niveau)
 	
 } // AfficheArbre ()
 
+// Alloue une chaine de caractère et la renvoie
 char * CreerChaine (char * chaine)
 {
 	char * c;

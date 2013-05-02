@@ -19,6 +19,7 @@
 FILE * yyin;
 FILE * FileOut;
 FILE * DataOut;
+FILE * FuncOut;
 char yytext [1000];
 int verbose = 0;
 int line = 1;

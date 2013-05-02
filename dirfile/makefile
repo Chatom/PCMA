@@ -17,7 +17,7 @@ COMPILER = gcc -I$(INCLUDE) -Wall -w -g -ansi -pedantic -std=c99 -Werror $*.c
 all: PCMA
 
 PCMA: 
-	gcc -o PCMA.run -I$(INCLUDE) -Wall -w -g -ansi -pedantic -std=c99 -Werror PCMA.c
+	gcc -o PCMA.run -I$(INCLUDE) -w -g -ansi -pedantic -std=c99 -Werror PCMA.c
 
 # Edition de liens
 #

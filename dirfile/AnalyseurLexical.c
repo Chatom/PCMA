@@ -12,6 +12,7 @@
  *
 **/
 
+// Récupère les lexèmes
 int yylex ()
 {
 	int c;

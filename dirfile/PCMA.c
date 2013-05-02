@@ -48,21 +48,25 @@ int main (int argc, char ** argv)
 		
 		FileOut = fopen (".data.asm", "w");
 		DataOut = fopen (".text.asm", "w");
+		//FuncOut = fopen (".func.asm", "w");
 		
 		SPile * Pile;
 		Pile = CreerPile (Racine);
-		AfficherPile (Pile);
+		
+		if (argc >= 4)
+			AfficherPile (Pile);
 		
 		fclose (yyin);
 		fclose (FileOut);
 		fclose (DataOut);
 		
 		system ("cat .text.asm .data.asm > out.asm");
+		system ("rm .text.asm .data.asm");
 		return 0;
 	}
 	else
 	{
-		printf ("usage: Analyseur FichierPascal [verbose] [tree]\n");
+		printf ("usage: Analyseur FichierPascal [verbose] [tree && symb]\n");
 		return 1;
 	}
 

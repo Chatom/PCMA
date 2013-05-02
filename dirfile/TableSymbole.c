@@ -13,6 +13,8 @@
 **/
 
 int CptMips;
+int NbIf;
+int NbWhile;
 
 int Adresse = 0;
 SPile * PileGlobale;
@@ -188,7 +190,8 @@ int TestTypeVar (char * Nom, SPile * Pile, int Type)
 		if (strcmp (Nom, "write") == 0
 			 || strcmp (Nom, "writeln") == 0 )
 			return;
-		if ( strcmp (Nom, "read") == 0 )
+		if ( strcmp (Nom, "read") == 0 
+			 || strcmp (Nom, "readln") == 0 )
 			return INTEGER;
 	}
 	
@@ -395,7 +398,7 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 		CreerTableSymbole (Racine->Fils2.Fils, Pile);
 		
 		GenererMips("exit");
-		fprintf(DataOut, "\t.text\n\n");
+		fprintf(DataOut, "space: .word ' '\n\t.text\n\n");
 	}
 	else if (Racine->Type == BODY)
 	{
@@ -422,7 +425,7 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 			 NoeudID != NULL;
 			 NoeudID = NoeudID->Fils2.Frere)
 		{
-			printf("var: %s\n", NoeudID->Fils1.Nom);
+	//		printf("var: %s\n", NoeudID->Fils1.Nom);
 			fprintf(DataOut, "%s: \t.word\n", NoeudID->Fils1.Nom);
 			
 			TestVarExiste (NoeudID->Fils1.Nom, Pile);
@@ -436,10 +439,12 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 	} // DECLVAR
 	else if (Racine->Type == DECLFONC || Racine->Type == DECLPROC)
 	{
-		if (Racine->Type == DECLFONC)
-			printf ("DECLFONC: %s\n",Racine->Fils1.Nom);
-		if (Racine->Type == DECLPROC)
-			printf ("DECLPROC: %s\n",Racine->Fils1.Nom);
+	//	if (Racine->Type == DECLFONC)
+	//		printf ("DECLFONC: %s\n",Racine->Fils1.Nom);
+	//	if (Racine->Type == DECLPROC)
+	//		printf ("DECLPROC: %s\n",Racine->Fils1.Nom);
+		
+		fprintf(FileOut, "%s:\n", Racine->Fils1.Nom);
 		
 		Type = Debut = Fin = NULL;
 		
@@ -519,6 +524,8 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 			CreerTableSymbole (Racine->Fils4.Fils, PileFonc);
 		
 		Adresse = OldAdr;
+		
+		fprintf(FileOut, "\tjr $ra\n\n", Racine->Fils1.Nom);
 
 	} // DECLPROC || DECLFUNC
 	else if (Racine->Type == BLOC)
@@ -537,15 +544,45 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 	}
 	else if (Racine->Type == WHILEDO)
 	{
+		fprintf(FileOut, "\nwhile%d:\n\t#comparaison\n", NbWhile);
+		
 		CreerTableSymbole (Racine->Fils1.Fils, Pile);
+		
+		CptMips = NULL;
+		
+		// Finishes the condition jumps
+		fprintf(FileOut, " $t1, $t0, end_while%d\n\n", NbWhile);
+		
 		CreerTableSymbole (Racine->Fils2.Fils, Pile);
+		
+		//NbWhile = NULL;
+		fprintf(FileOut, "\tj while%d\n\nend_while%d:\n", NbWhile, NbWhile);
+		
+		NbWhile++;
+		CptMips = NULL;
 	}
 	else if (Racine->Type == IFTHENELSE)
 	{
 		CreerTableSymbole (Racine->Fils1.Fils, Pile);
+		
+		CptMips = NULL;
+		
+		// Finishes the condition jumps
+		fprintf(FileOut, " $t0, $t1, if%d\n\tb else%d\n", NbIf, NbIf);
+		fprintf(FileOut, "\nif%d:\n", NbIf);
+		
 		CreerTableSymbole (Racine->Fils2.Fils, Pile);
+		
+		CptMips = NULL;
+		
+		// Writes the else jumps
 		if (Racine->Fils3.Fils != NULL)
+		{
+			fprintf(FileOut, "\n\tb end_if%d\n\nelse%d:\n", NbIf, NbIf);
 			CreerTableSymbole (Racine->Fils3.Fils, Pile);
+		}
+		
+		fprintf(FileOut, "\nend_if%d:\n", NbIf++);
 	}
 	else if (Racine->Type == AFFECTATION)
 	{
@@ -573,6 +610,7 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 		NomFonction = ParamActuel = NbParamRestant = NULL;
 		
 	//	printf ("APPELPROC: %s\n", Racine->Fils1.Nom);
+		
 		TestTypeVar (Racine->Fils1.Nom, Pile, PROCEDURE);
 		CreerTableSymbole (Racine->Fils2.Fils, Pile);
 		
@@ -585,6 +623,8 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 		if (Racine->Fils1.Nom != NULL &&
 			(strcmp (Racine->Fils1.Nom, "write") == 0 || strcmp (Racine->Fils1.Nom, "writeln") == 0) )
 			GenererMips ("write");
+		else
+			fprintf(FileOut, "\tjal %s\n\n", Racine->Fils1.Nom);
 		
 		// Reset les variables de paramètres
 		NbParamRestant = NbParamTmp;
@@ -612,7 +652,16 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 	else if (Racine->Type == COMPARAISON)
 	{
 		CreerTableSymbole (Racine->Fils1.Fils, Pile);
-		CreerTableSymbole (Racine->Fils2.Fils, Pile);
+		
+		// Si c'est une comparaison d'integer
+		//if (Racine->Fils2.Fils == SUITECOMPAR)
+			CreerTableSymbole (Racine->Fils2.Fils, Pile);
+		//else
+		{
+			// C'est un boolean seul
+		//	fprintf(FileOut, "\tbne $t0, $zero, if%d\n", NbIf);
+		//	fprintf(FileOut, "\tb else%d\n", NbIf);
+		}
 	}
 	else if (Racine->Type == SUITECOMPAR)
 	{
@@ -621,11 +670,27 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 		{
 	//		printf ("SUITECOMPAR: %d\n", Racine->Fils1.Nombre);
 			
+			
 			// Le type de comparaison doit être int
 			
 			TypeComparaison = TypeComparTemp;
 			CreerTableSymbole (Racine->Fils2.Fils, Pile);
 			TypeComparaison = NULL;
+			
+			// Vérifie le contenu de la comparaison
+			if (Racine->Fils1.Nombre == '=')
+				fprintf(FileOut, "\tbeq ");
+			else if (Racine->Fils1.Nombre == DIFFERENT)
+				fprintf(FileOut, "\tbne ");
+			else if (Racine->Fils1.Nombre == '<')
+				fprintf(FileOut, "\tblt ");
+			else if (Racine->Fils1.Nombre == '>')
+				fprintf(FileOut, "\tbgt ");
+			else if (Racine->Fils1.Nombre == INFEGAL)
+				fprintf(FileOut, "\tble ");
+			else if (Racine->Fils1.Nombre == SUPEGAL)
+				fprintf(FileOut, "\tbge ");
+			
 		}
 	}
 	else if (Racine->Type == EXPARITH)
@@ -721,10 +786,6 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 				
 				TestTypeVar (Racine->Fils2.Nom, Pile, FUNCTION);
 				
-				// Gère les input
-				if (Racine->Fils2.Nom != NULL && strcmp (Racine->Fils2.Nom, "read") == 0 )
-					GenererMips ("read");
-				
 			}
 			// Autrement si c'est un tableau
 			else if (Racine->Fils3.Fils != NULL
@@ -758,8 +819,16 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 				NbParamRestant = NbParamTmp;
 				ParamActuel = ParamTmp;
 				NomFonction = NomFoncTmp;
+				
+				
+				if ( Racine->Fils2.Nom != NULL &&
+					 (strcmp (Racine->Fils2.Nom, "read") == 0 || strcmp (Racine->Fils2.Nom, "readln") == 0 ) )
+					GenererMips ("read");
+				else
+					fprintf(FileOut, "\tjal %s\n", Racine->Fils2.Nom);
 			}
-		}	
+		}
+		
 	}
 	else if (Racine->Type == LISTEEXP)
 	{
@@ -782,12 +851,13 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 	
 } // CreerTableSymbole ()
 
+// Gère les appels syscall
 void GenererMips (char * Nom)
 {
 	if 		(strcmp (Nom, "exit") == 0)
 		fprintf(FileOut, "\n\t#exit\n\taddi $v0, $zero, 10\n\tsyscall\n");
 	else if (strcmp (Nom, "write") == 0)
-		fprintf(FileOut, "\n\t#write\n\tadd $a0, $t0, $zero\n\taddi $v0, $zero, 1\n\tsyscall\n");
+		fprintf(FileOut, "\n\t#write\n\tadd $a0, $t0, $zero\n\taddi $v0, $zero, 1\n\tsyscall\n\t#space\n\tlw $a0, space\n\taddi $v0, $zero, 11\n\tsyscall\n");
 	else if (strcmp (Nom, "read") == 0)
 		fprintf(FileOut, "\n\t#read\n\taddi $v0, $zero, 5\n\tsyscall\n\tadd $t0, $v0, $zero\n");
 	

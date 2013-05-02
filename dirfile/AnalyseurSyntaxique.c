@@ -16,6 +16,7 @@
 #define Accept(attendu) AcceptInfo(attendu,__FILE__,__LINE__)
 #define Erreur(attendu) ErreurInfo(attendu,__FILE__,__LINE__)
 
+// Vérifie si le caractère suivant est le bon ou affiche une erreur
 void AcceptInfo (int attendu, char * File, int Line)
 {
 	if (lexeme != attendu)
@@ -41,6 +42,7 @@ void AcceptInfo (int attendu, char * File, int Line)
 
 } // AcceptInfo ()
 
+// Affiche une erreur
 void ErreurInfo (int attendu, char * File, int Line)
 {
 	printf ("[Error:%d] line %d :  %s non attendu\n", Line, line, yytext);
