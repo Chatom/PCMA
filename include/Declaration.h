@@ -18,6 +18,7 @@
 // Variables globales
 FILE * yyin;
 FILE * FileOut;
+FILE * DataOut;
 char yytext [1000];
 int verbose = 0;
 int line = 1;

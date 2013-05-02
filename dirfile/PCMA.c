@@ -46,13 +46,18 @@ int main (int argc, char ** argv)
 			AfficherArbre (Racine, 0);
 		}
 		
-		//FileOut = fopen ("out.asm", "a");
+		FileOut = fopen (".data.asm", "w");
+		DataOut = fopen (".text.asm", "w");
 		
 		SPile * Pile;
 		Pile = CreerPile (Racine);
 		AfficherPile (Pile);
-
+		
 		fclose (yyin);
+		fclose (FileOut);
+		fclose (DataOut);
+		
+		system ("cat .text.asm .data.asm > out.asm");
 		return 0;
 	}
 	else

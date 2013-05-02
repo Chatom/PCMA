@@ -3,5 +3,6 @@ var
    a, b	: integer;
 begin
    a := 2;
-   b := a + 2 * a;
+   b := 3 * a + 4;
+   write(b);
 end.

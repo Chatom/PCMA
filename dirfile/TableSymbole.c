@@ -12,6 +12,8 @@
  *
 **/
 
+int CptMips;
+
 int Adresse = 0;
 SPile * PileGlobale;
 char * VarPrec;
@@ -387,9 +389,13 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 		
 		PileGlobale = Pile;
 		
-		//fprintf(FileOut, "main:\n");
+		fprintf(FileOut, "main:\n");
+		fprintf(DataOut, "\t.data\n");
 		
 		CreerTableSymbole (Racine->Fils2.Fils, Pile);
+		
+		GenererMips("exit");
+		fprintf(DataOut, "\t.text\n\n");
 	}
 	else if (Racine->Type == BODY)
 	{
@@ -417,6 +423,7 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 			 NoeudID = NoeudID->Fils2.Frere)
 		{
 			printf("var: %s\n", NoeudID->Fils1.Nom);
+			fprintf(DataOut, "%s: \t.word\n", NoeudID->Fils1.Nom);
 			
 			TestVarExiste (NoeudID->Fils1.Nom, Pile);
 			AjouterSymbSurPile (Pile, NoeudID->Fils1.Nom, Type, Debut, Fin, Adresse);
@@ -522,7 +529,9 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 	{
 		if (Racine->Fils1.Fils != NULL)
 			CreerTableSymbole (Racine->Fils1.Fils, Pile);
-
+		
+		CptMips = NULL;
+		
 		if (Racine->Fils2.Frere != NULL)
 			CreerTableSymbole (Racine->Fils2.Frere, Pile);
 	}
@@ -548,6 +557,8 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 		TypeAffectation = TypeAffectLocal;
 		
 		CreerTableSymbole (Racine->Fils3.Fils, Pile);
+		
+		fprintf(FileOut, "\tsw $t0, %s\n\n", Racine->Fils1.Nom);
 
 		TypeAffectation = NULL;
 	}
@@ -569,6 +580,11 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 			printf(" ! Missing parameters for fonction call %s\n", NomFonction);
 		else if (NbParamRestant < 0)
 			printf(" ! Too much parameters for function call %s\n", NomFonction);
+		
+		// Gère l'affichage
+		if (Racine->Fils1.Nom != NULL &&
+			(strcmp (Racine->Fils1.Nom, "write") == 0 || strcmp (Racine->Fils1.Nom, "writeln") == 0) )
+			GenererMips ("write");
 		
 		// Reset les variables de paramètres
 		NbParamRestant = NbParamTmp;
@@ -621,6 +637,12 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 		{
 			//printf ("Addition: %d\n", Racine->Fils3.Nombre);
 			CreerTableSymbole (Racine->Fils4.Frere, Pile);
+			
+			// Génère l'opération
+			if (Racine->Fils3.Nombre == 43)
+				fprintf(FileOut, "\tadd $t%d, $t%d, $t%d\n", --CptMips-1, CptMips-1, CptMips-2);
+			else
+				fprintf(FileOut, "\tadd $t%d, $t%d, -$t%d\n", --CptMips-1, CptMips-1, CptMips-2);
 		}
 	}
 	else if (Racine->Type == TERME)
@@ -631,6 +653,14 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 		{
 		//	printf ("MULTIPL: %d\n", Racine->Fils2.Nombre);
 			CreerTableSymbole (Racine->Fils3.Frere, Pile);
+			
+			// Génère l'opération
+			if (Racine->Fils2.Nombre == 42)
+				fprintf(FileOut, "\tmul $t%d, $t%d, $t%d\n", --CptMips-1, CptMips-1, CptMips-2);
+			else if (Racine->Fils2.Nombre == DIV)
+				fprintf(FileOut, "\tdiv $t%d, $t%d\n  mflo $t%d\n", --CptMips-1, CptMips-1, CptMips-2);
+			else
+				fprintf(FileOut, "\tdiv $t%d, $t%d\n  mfhi $t%d\n", --CptMips-1, CptMips-1, CptMips-2);
 		}
 	}
 	else if (Racine->Type == FACTEUR)
@@ -661,6 +691,14 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 					AfficherErreurAutre(BOOLEAN);
 				else
 					AfficherErreurAutre(INTEGER);
+				
+				// Génère le nombre
+				if (Racine->Fils1.Nombre == TRUE)
+					fprintf(FileOut, "\taddi $t%d, $zero, %d\n", CptMips++, 1);
+				else if (Racine->Fils1.Nombre == FALSE)
+					fprintf(FileOut, "\taddi $t%d, $zero, %d\n", CptMips++, 0);
+				else
+					fprintf(FileOut, "\taddi $t%d, $zero, %d\n", CptMips++, Racine->Fils1.Nombre);
 			}
 		}
 		if (Racine->Fils2.Nom != NULL)
@@ -682,13 +720,24 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 				NomFonction = ParamActuel = NbParamRestant = NULL;
 				
 				TestTypeVar (Racine->Fils2.Nom, Pile, FUNCTION);
+				
+				// Gère les input
+				if (Racine->Fils2.Nom != NULL && strcmp (Racine->Fils2.Nom, "read") == 0 )
+					GenererMips ("read");
+				
 			}
 			// Autrement si c'est un tableau
 			else if (Racine->Fils3.Fils != NULL
 					 && Racine->Fils3.Fils->Type == EXPRESSION)
+			{
 				TestTypeVar (Racine->Fils2.Nom, Pile, ARRAY);
+			}
+			// Autrement c'est une variable normale
 			else
+			{
 				TypeComparTemp = TestTypeVar (Racine->Fils2.Nom, Pile, 0);
+				fprintf(FileOut, "\tlw $t%d, %s\n", CptMips++, Racine->Fils2.Nom);
+			}
 			
 			// Si c'est le terme à gauche de la comparaison
 			//if (TypeComparTemp == NULL) TypeComparTemp = TypeComparLocal;
@@ -733,4 +782,14 @@ void CreerTableSymbole (SNoeud * Racine, SPile * Pile)
 	
 } // CreerTableSymbole ()
 
-/* */
+void GenererMips (char * Nom)
+{
+	if 		(strcmp (Nom, "exit") == 0)
+		fprintf(FileOut, "\n\t#exit\n\taddi $v0, $zero, 10\n\tsyscall\n");
+	else if (strcmp (Nom, "write") == 0)
+		fprintf(FileOut, "\n\t#write\n\tadd $a0, $t0, $zero\n\taddi $v0, $zero, 1\n\tsyscall\n");
+	else if (strcmp (Nom, "read") == 0)
+		fprintf(FileOut, "\n\t#read\n\taddi $v0, $zero, 5\n\tsyscall\n\tadd $t0, $v0, $zero\n");
+	
+} // GenererMips ()
+
